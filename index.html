@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snapsify Photobooth Studio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800;900&family=Permanent+Marker&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- QR Code Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        marker: ['Permanent Marker', 'cursive'],
+                        arcade: ['"Press Start 2P"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Filter definitions */
+        .filter-normal { filter: none; }
+        .filter-bw { filter: grayscale(100%) contrast(120%); }
+        .filter-sepia { filter: sepia(90%) contrast(110%) brightness(95%); }
+        .filter-vintage { filter: sepia(50%) hue-rotate(-30deg) contrast(110%) saturate(140%) brightness(90%); }
+        .filter-cool { filter: hue-rotate(180deg) saturate(120%) brightness(105%); }
+        .filter-warm { filter: sepia(40%) saturate(150%) brightness(105%) hue-rotate(-10deg); }
+        .filter-cyberpunk { filter: contrast(150%) saturate(200%) hue-rotate(290deg) brightness(110%); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        @keyframes flashAnim {
+            0% { opacity: 0; }
+            50% { opacity: 1; background-color: white; }
+            100% { opacity: 0; }
+        }
+        .camera-flash {
+            animation: flashAnim 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body id="app-body" class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans select-none overflow-x-hidden transition-all duration-500 bg-cover bg-center" style="background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 75%);">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-pink-500 to-violet-600 p-2.5 rounded-xl shadow-lg shadow-pink-500/20">
+                <i class="fa-solid fa-camera-retro text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-bold text-xl tracking-wide bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent">SNAPSIFY</h1>
+                <p class="text-xs text-slate-400 font-medium">Ultimate Touch & Desktop Photobooth</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="switchTab('setup')" id="nav-setup" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-pink-600 text-white shadow-lg shadow-pink-600/30 flex items-center space-x-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="hidden sm:inline">Setup & Theme</span>
+            </button>
+            <button onclick="switchTab('booth')" id="nav-booth" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-2">
+                <i class="fa-solid fa-camera"></i>
+                <span class="hidden sm:inline">Live Studio</span>
+            </button>
+            <button onclick="switchTab('gallery')" id="nav-gallery" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-2 relative">
+                <i class="fa-solid fa-images"></i>
+                <span class="hidden sm:inline">Cloud Gallery</span>
+                <span id="gallery-badge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative overflow-y-auto">
+
+        <!-- ================= STEP 1: LAYOUT & THEME SETUP TAB ================= -->
+        <div id="tab-setup" class="flex-1 flex flex-col p-4 sm:p-8 max-w-5xl mx-auto w-full">
+            <div class="text-center mb-8">
+                <span class="px-3 py-1 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-bold rounded-full uppercase tracking-wider">Step 1 of 4</span>
+                <h2 class="font-display font-extrabold text-3xl sm:text-4xl text-white mt-2 mb-2">Design Your Photobooth Session</h2>
+                <p class="text-sm text-slate-400 max-w-xl mx-auto">Choose your favorite photostrip layout, aesthetic studio background wallpaper, timer duration, and custom styling before stepping into the camera studio.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                
+                <!-- Layout Selection Card -->
+                <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-display font-bold text-base text-white mb-1 flex items-center justify-between">
+                            <span>1. Choose Photo Layout</span>
+                            <i class="fa-solid fa-grid-2 text-pink-500"></i>
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">Select how many shots and how your strip will look.</p>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="setLayout('single')" class="layout-card p-4 rounded-2xl border-2 border-pink-500 bg-pink-500/10 text-left transition-all flex flex-col justify-between h-24" data-layout="single">
+                                <span class="font-bold text-sm text-white">Single 1x1</span>
+                                <span class="text-xs text-slate-400">1 Shot portrait</span>
+                            </button>
+                            <button onclick="setLayout('strip3')" class="layout-card p-4 rounded-2xl border-2 border-slate-800 bg-slate-950/60 hover:bg-slate-800 text-left transition-all flex flex-col justify-between h-24" data-layout="strip3">
+                                <span class="font-bold text-sm text-white">Strip (3-Vert)</span>
+                                <span class="text-xs text-slate-400">3 Shots vertical</span>
+                            </button>
+                            <button onclick="setLayout('grid2x2')" class="layout-card p-4 rounded-2xl border-2 border-slate-800 bg-slate-950/60 hover:bg-slate-800 text-left transition-all flex flex-col justify-between h-24" data-layout="grid2x2">
+                                <span class="font-bold text-sm text-white">Grid 2x2</span>
+                                <span class="text-xs text-slate-400">4 Shots grid</span>
+                            </button>
+                            <button onclick="setLayout('polaroid')" class="layout-card p-4 rounded-2xl border-2 border-slate-800 bg-slate-950/60 hover:bg-slate-800 text-left transition-all flex flex-col justify-between h-24" data-layout="polaroid">
+                                <span class="font-bold text-sm text-white">Polaroid</span>
+                                <span class="text-xs text-slate-400">Retro 1 Shot</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Background Selection & Upload Card -->
+                <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-display font-bold text-base text-white mb-1 flex items-center justify-between">
+                            <span>2. Choose Studio Background</span>
+                            <i class="fa-solid fa-image text-pink-500"></i>
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">Pick preset aesthetic wallpaper or upload your own image.</p>
+                        
+                        <div class="grid grid-cols-3 gap-2.5 mb-4">
+                            <button onclick="setBg('gradient-midnight')" class="bg-thumb p-2 rounded-2xl border-2 border-pink-500 bg-gradient-to-tr from-indigo-950 via-slate-900 to-slate-950 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow" data-bg="gradient-midnight">Midnight</button>
+                            <button onclick="setBg('gradient-neon')" class="bg-thumb p-2 rounded-2xl border-2 border-slate-800 bg-gradient-to-tr from-pink-900 via-purple-900 to-indigo-950 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow" data-bg="gradient-neon">Neon Glow</button>
+                            <button onclick="setBg('gradient-sunset')" class="bg-thumb p-2 rounded-2xl border-2 border-slate-800 bg-gradient-to-tr from-amber-900 via-rose-950 to-purple-950 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow" data-bg="gradient-sunset">Sunset</button>
+                        </div>
+
+                        <!-- Custom Image Upload -->
+                        <div class="relative border-2 border-dashed border-slate-700 hover:border-pink-500 rounded-2xl p-3 text-center transition-all cursor-pointer bg-slate-950/40">
+                            <input type="file" id="custom-bg-upload" accept="image/*" onchange="handleCustomBackgroundUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                            <div class="flex items-center justify-center space-x-2 text-xs text-slate-300">
+                                <i class="fa-solid fa-cloud-arrow-up text-pink-500 text-base"></i>
+                                <span id="upload-label-text">Upload Custom Wallpaper Image</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Additional Setup Row (Timer & Theme Frame Color & Title) -->
+            <div class="bg-slate-900/80 border border-slate-800/80 backdrop-blur-md rounded-3xl p-6 shadow-xl mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Timer -->
+                    <div>
+                        <label class="block font-display font-bold text-sm text-white mb-2">3. Shot Timer</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button onclick="setTimer(3)" class="timer-btn py-2.5 rounded-xl text-sm font-bold bg-pink-600 text-white transition-all shadow-md shadow-pink-600/20" data-time="3">3s</button>
+                            <button onclick="setTimer(5)" class="timer-btn py-2.5 rounded-xl text-sm font-bold bg-slate-950 hover:bg-slate-800 text-slate-300 transition-all border border-slate-800" data-time="5">5s</button>
+                            <button onclick="setTimer(10)" class="timer-btn py-2.5 rounded-xl text-sm font-bold bg-slate-950 hover:bg-slate-800 text-slate-300 transition-all border border-slate-800" data-time="10">10s</button>
+                            <button onclick="setTimer(15)" class="timer-btn py-2.5 rounded-xl text-sm font-bold bg-slate-950 hover:bg-slate-800 text-slate-300 transition-all border border-slate-800" data-time="15">15s</button>
+                        </div>
+                    </div>
+
+                    <!-- Frame Title -->
+                    <div>
+                        <label class="block font-display font-bold text-sm text-white mb-2">4. Photostrip Title</label>
+                        <input type="text" id="custom-title-input" value="BEST MEMORIES" oninput="updateCustomization()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition-all">
+                    </div>
+
+                    <!-- Theme Color & Font -->
+                    <div>
+                        <label class="block font-display font-bold text-sm text-white mb-2">5. Frame Color & Font</label>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+                                <input type="color" id="frame-color-picker" value="#ec4899" onchange="updateCustomization()" class="w-7 h-7 rounded-lg bg-transparent cursor-pointer border-0">
+                                <span id="color-hex-text" class="text-xs font-mono text-slate-300">#ec4899</span>
+                            </div>
+                            <select id="font-style-select" onchange="updateCustomization()" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-all">
+                                <option value="font-sans">Modern Inter</option>
+                                <option value="font-display">Outfit Bold</option>
+                                <option value="font-marker">Marker Script</option>
+                                <option value="font-arcade">Arcade Pixel</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proceed to Studio Button -->
+            <div class="flex justify-center">
+                <button onclick="switchTab('booth')" class="px-8 py-4 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-display font-extrabold text-lg rounded-2xl shadow-xl shadow-purple-600/30 flex items-center space-x-3 transform active:scale-95 transition-all">
+                    <span>Enter Live Camera Studio</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+
+        <!-- ================= STEP 2: LIVE STUDIO TAB ================= -->
+        <div id="tab-booth" class="flex-1 flex flex-col lg:flex-row p-4 gap-6 max-w-7xl mx-auto w-full hidden">
+            
+            <!-- Left / Main: Live Camera & Capture area -->
+            <div class="flex-1 flex flex-col items-center justify-center bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-6 relative backdrop-blur-sm shadow-2xl">
+                
+                <!-- Camera Viewport Container -->
+                <div id="camera-container" class="relative w-full max-w-2xl aspect-[4/3] bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 flex items-center justify-center">
+                    
+                    <!-- Video Feed -->
+                    <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover filter-normal transition-all duration-300"></video>
+                    
+                    <!-- Canvas (Hidden) for snapping -->
+                    <canvas id="snapshot-canvas" class="hidden"></canvas>
+
+                    <!-- Flash overlay -->
+                    <div id="flash-overlay" class="absolute inset-0 pointer-events-none z-30 opacity-0"></div>
+
+                    <!-- Countdown overlay -->
+                    <div id="countdown-display" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-20 hidden">
+                        <span id="countdown-number" class="font-display font-black text-8xl sm:text-9xl text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] animate-bounce">3</span>
+                    </div>
+
+                    <!-- Status badge -->
+                    <div id="camera-status-badge" class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-slate-200 border border-white/10 flex items-center space-x-2 z-10">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="layout-indicator-text">Layout: Single 1x1</span>
+                    </div>
+
+                    <!-- Camera Permission Error State -->
+                    <div id="camera-error" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-6 text-center z-45 hidden">
+                        <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mb-4 text-2xl">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-lg mb-2">Camera Access Required</h3>
+                        <p class="text-sm text-slate-400 max-w-md mb-6">Please allow camera permissions in your browser settings or start in demo simulation mode.</p>
+                        <div class="flex space-x-3">
+                            <button onclick="initCamera()" class="px-5 py-2.5 bg-pink-600 hover:bg-pink-500 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-pink-600/30">
+                                Try Again
+                            </button>
+                            <button onclick="enableDemoMode()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-semibold text-sm transition-all">
+                                Use Demo Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls under camera (Filters & Quick Actions) -->
+                <div class="w-full max-w-2xl mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <!-- Filters Selector -->
+                    <div class="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto py-1 px-1 bg-slate-950/60 rounded-2xl border border-slate-800">
+                        <button onclick="setFilter('normal', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-pink-600 text-white transition-all whitespace-nowrap">Normal</button>
+                        <button onclick="setFilter('filter-bw', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">B&W</button>
+                        <button onclick="setFilter('filter-sepia', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">Sepia</button>
+                        <button onclick="setFilter('filter-vintage', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">Vintage</button>
+                        <button onclick="setFilter('filter-cool', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">Cool</button>
+                        <button onclick="setFilter('filter-warm', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">Warm</button>
+                        <button onclick="setFilter('filter-cyberpunk', this)" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap">Cyberpunk</button>
+                    </div>
+
+                    <!-- Main Capture Trigger Button -->
+                    <button id="capture-btn" onclick="startPhotoSession()" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white font-display font-bold text-lg rounded-2xl shadow-xl shadow-purple-600/30 flex items-center justify-center space-x-3 transform active:scale-95 transition-all">
+                        <i class="fa-solid fa-camera-rotate text-xl"></i>
+                        <span id="capture-btn-text">Take Photos (1/1)</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Right / Sidebar: Quick Summary & Stickers -->
+            <div class="w-full lg:w-96 flex flex-col space-y-4">
+                <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 backdrop-blur-sm shadow-xl">
+                    <h3 class="font-display font-bold text-sm text-slate-300 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>Stickers / Stamps</span>
+                        <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i>
+                    </h3>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button onclick="toggleSticker('💖')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">💖</button>
+                        <button onclick="toggleSticker('✨')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">✨</button>
+                        <button onclick="toggleSticker('🔥')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">🔥</button>
+                        <button onclick="toggleSticker('⭐')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">⭐</button>
+                        <button onclick="toggleSticker('🌸')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">🌸</button>
+                        <button onclick="toggleSticker('👑')" class="sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all">👑</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 backdrop-blur-sm shadow-xl flex-1 flex flex-col justify-center text-center">
+                    <p class="text-xs text-slate-400 mb-3">Need to change layout or background wallpaper?</p>
+                    <button onclick="switchTab('setup')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold text-sm transition-all">
+                        Back to Setup
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ================= GALLERY TAB ================= -->
+        <div id="tab-gallery" class="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full hidden">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b border-slate-800 gap-4">
+                <div>
+                    <h2 class="font-display font-bold text-2xl text-white">Cloud Gallery & History</h2>
+                    <p class="text-sm text-slate-400">View, download, or share your photobooth creations instantly via QR code.</p>
+                </div>
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <button onclick="clearGallery()" class="px-4 py-2 bg-slate-900 hover:bg-rose-950/40 text-rose-400 border border-rose-900/30 rounded-xl text-sm font-semibold transition-all">
+                        <i class="fa-solid fa-trash-can mr-2"></i>Clear All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="gallery-empty" class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-20 h-20 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-center text-3xl text-slate-600 mb-4">
+                    <i class="fa-solid fa-images"></i>
+                </div>
+                <h3 class="font-display font-bold text-lg text-slate-300 mb-1">No Photos Yet</h3>
+                <p class="text-sm text-slate-500 max-w-sm mb-6">Head over to the Studio tab, snap some fun moments, and your photostrips will appear here!</p>
+                <button onclick="switchTab('setup')" class="px-6 py-2.5 bg-pink-600 hover:bg-pink-500 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-pink-600/30">
+                    Get Started
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+
+    <!-- ================= MODAL: RETAKE / REVIEW SHOTS ================= -->
+    <div id="review-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div>
+                    <h3 class="font-display font-bold text-xl text-white">Review Your Shots</h3>
+                    <p class="text-xs text-slate-400">Click any shot to retake it individually, or proceed to final strip.</p>
+                </div>
+                <button onclick="closeReviewModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Individual Shots Container -->
+            <div id="review-shots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 overflow-y-auto">
+                <!-- Dynamically filled -->
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+                <button onclick="retakeAllShots()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Retake All</span>
+                </button>
+                <button onclick="finalizeAndGeneratePhotostrip()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-display font-bold text-sm shadow-lg shadow-pink-500/30 flex items-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Generate Final Strip</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= MODAL: PREVIEW & QR SHARE ================= -->
+    <div id="share-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="font-display font-bold text-xl text-white mb-1">Photostrip Ready!</h3>
+            <p class="text-xs text-slate-400 mb-6">Scan QR code with your phone camera or download directly.</p>
+
+            <!-- Rendered Photostrip Container -->
+            <div id="modal-photostrip-preview-wrap" class="bg-white p-4 rounded-2xl shadow-xl mb-6 max-h-[300px] overflow-y-auto flex justify-center w-full">
+                <!-- Canvas or Image representation -->
+            </div>
+
+            <!-- QR Code container -->
+            <div class="bg-white p-3 rounded-2xl shadow-md mb-6 flex justify-center">
+                <div id="qrcode" class="w-32 h-32 flex items-center justify-center"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 w-full">
+                <button onclick="downloadCurrentPhotostrip()" class="py-3 px-4 bg-pink-600 hover:bg-pink-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-pink-600/30 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download</span>
+                </button>
+                <button onclick="closeShareModal()" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State management
+        let state = {
+            activeTab: 'setup',
+            layout: 'single', // 'single', 'strip3', 'grid2x2', 'polaroid'
+            shotsRequired: 1,
+            currentShotIndex: 0,
+            timerDuration: 3,
+            selectedFilter: 'filter-normal',
+            customTitle: 'BEST MEMORIES',
+            frameColor: '#ec4899',
+            fontStyle: 'font-sans',
+            stickers: [],
+            backgroundChoice: 'gradient-midnight',
+            customBgUrl: null,
+            capturedShots: [],
+            isDemoMode: false,
+            gallery: []
+        };
+
+        const layoutConfig = {
+            single: { shots: 1, name: 'Single 1x1' },
+            strip3: { shots: 3, name: 'Strip (3-Vert)' },
+            grid2x2: { shots: 4, name: 'Grid 2x2' },
+            polaroid: { shots: 1, name: 'Polaroid Style' }
+        };
+
+        const webcamElement = document.getElementById('webcam');
+        const snapshotCanvas = document.getElementById('snapshot-canvas');
+        let videoStream = null;
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCamera();
+            loadGalleryFromStorage();
+            updateCustomization();
+            applyBackgroundStyle();
+        });
+
+        // Camera Initialization
+        async function initCamera() {
+            const errorElement = document.getElementById('camera-error');
+            errorElement.classList.add('hidden');
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: false
+                });
+                webcamElement.srcObject = videoStream;
+                state.isDemoMode = false;
+            } catch (err) {
+                console.warn("Webcam access error or denied:", err);
+                errorElement.classList.remove('hidden');
+            }
+        }
+
+        function enableDemoMode() {
+            document.getElementById('camera-error').classList.add('hidden');
+            state.isDemoMode = true;
+            webcamElement.srcObject = null;
+            webcamElement.style.background = 'linear-gradient(135deg, #3b82f6, #ec4899, #8b5cf6)';
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            const setupTab = document.getElementById('tab-setup');
+            const boothTab = document.getElementById('tab-booth');
+            const galleryTab = document.getElementById('tab-gallery');
+            const navSetup = document.getElementById('nav-setup');
+            const navBooth = document.getElementById('nav-booth');
+            const navGallery = document.getElementById('nav-gallery');
+
+            setupTab.classList.add('hidden');
+            boothTab.classList.add('hidden');
+            galleryTab.classList.add('hidden');
+            navSetup.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-2";
+            navBooth.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-2";
+            navGallery.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-2 relative";
+
+            if (tabId === 'setup') {
+                setupTab.classList.remove('hidden');
+                navSetup.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-pink-600 text-white shadow-lg shadow-pink-600/30 flex items-center space-x-2";
+            } else if (tabId === 'booth') {
+                boothTab.classList.remove('hidden');
+                navBooth.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-pink-600 text-white shadow-lg shadow-pink-600/30 flex items-center space-x-2";
+            } else {
+                galleryTab.classList.remove('hidden');
+                navGallery.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-pink-600 text-white shadow-lg shadow-pink-600/30 flex items-center space-x-2 relative";
+                renderGallery();
+            }
+        }
+
+        // Layout Selection
+        function setLayout(layoutKey) {
+            state.layout = layoutKey;
+            state.shotsRequired = layoutConfig[layoutKey].shots;
+
+            document.querySelectorAll('.layout-card').forEach(btn => {
+                if (btn.getAttribute('data-layout') === layoutKey) {
+                    btn.className = "layout-card p-4 rounded-2xl border-2 border-pink-500 bg-pink-500/10 text-left transition-all flex flex-col justify-between h-24";
+                } else {
+                    btn.className = "layout-card p-4 rounded-2xl border-2 border-slate-800 bg-slate-950/60 hover:bg-slate-800 text-left transition-all flex flex-col justify-between h-24";
+                }
+            });
+
+            document.getElementById('layout-indicator-text').innerText = `Layout: ${layoutConfig[layoutKey].name}`;
+            document.getElementById('capture-btn-text').innerText = `Take Photos (1/${state.shotsRequired})`;
+        }
+
+        // Background Selection & Custom Upload
+        function setBg(bgKey) {
+            state.backgroundChoice = bgKey;
+            state.customBgUrl = null;
+            document.getElementById('upload-label-text').innerText = 'Upload Custom Wallpaper Image';
+
+            document.querySelectorAll('.bg-thumb').forEach(btn => {
+                if (btn.getAttribute('data-bg') === bgKey) {
+                    btn.className = "bg-thumb p-2 rounded-2xl border-2 border-pink-500 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow";
+                } else {
+                    btn.className = "bg-thumb p-2 rounded-2xl border-2 border-slate-800 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow opacity-70";
+                }
+            });
+
+            applyBackgroundStyle();
+        }
+
+        function handleCustomBackgroundUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                state.customBgUrl = e.target.result;
+                state.backgroundChoice = 'custom';
+                document.getElementById('upload-label-text').innerText = `Loaded: ${file.name}`;
+                
+                document.querySelectorAll('.bg-thumb').forEach(btn => {
+                    btn.className = "bg-thumb p-2 rounded-2xl border-2 border-slate-800 text-left transition-all h-16 flex items-end p-2.5 text-xs font-semibold text-white shadow opacity-70";
+                });
+
+                applyBackgroundStyle();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyBackgroundStyle() {
+            const body = document.getElementById('app-body');
+            if (state.customBgUrl) {
+                body.style.backgroundImage = `linear-gradient(rgba(9, 13, 22, 0.85), rgba(9, 13, 22, 0.85)), url('${state.customBgUrl}')`;
+            } else if (state.backgroundChoice === 'gradient-neon') {
+                body.style.backgroundImage = 'radial-gradient(circle at 50% 0%, #831843 0%, #090d16 75%)';
+            } else if (state.backgroundChoice === 'gradient-sunset') {
+                body.style.backgroundImage = 'radial-gradient(circle at 50% 0%, #78350f 0%, #090d16 75%)';
+            } else {
+                body.style.backgroundImage = 'radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 75%)';
+            }
+        }
+
+        // Timer Selection
+        function setTimer(seconds) {
+            state.timerDuration = seconds;
+            document.querySelectorAll('.timer-btn').forEach(btn => {
+                if (parseInt(btn.getAttribute('data-time')) === seconds) {
+                    btn.className = "timer-btn py-2.5 rounded-xl text-sm font-bold bg-pink-600 text-white transition-all shadow-md shadow-pink-600/20";
+                } else {
+                    btn.className = "timer-btn py-2.5 rounded-xl text-sm font-bold bg-slate-950 hover:bg-slate-800 text-slate-300 transition-all border border-slate-800";
+                }
+            });
+        }
+
+        // Filters
+        function setFilter(filterClass, btnElement) {
+            state.selectedFilter = filterClass;
+            webcamElement.className = `w-full h-full object-cover ${filterClass} transition-all duration-300`;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all whitespace-nowrap";
+            });
+            btnElement.className = "filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-pink-600 text-white transition-all whitespace-nowrap";
+        }
+
+        // Customization
+        function updateCustomization() {
+            state.customTitle = document.getElementById('custom-title-input').value || 'SNAPSIFY';
+            state.frameColor = document.getElementById('frame-color-picker').value;
+            state.fontStyle = document.getElementById('font-style-select').value;
+            document.getElementById('color-hex-text').innerText = state.frameColor;
+        }
+
+        function toggleSticker(emoji) {
+            const index = state.stickers.indexOf(emoji);
+            if (index > -1) {
+                state.stickers.splice(index, 1);
+            } else {
+                state.stickers.push(emoji);
+            }
+            document.querySelectorAll('.sticker-btn').forEach(btn => {
+                if (state.stickers.includes(btn.innerText.trim())) {
+                    btn.className = "sticker-btn w-9 h-9 bg-pink-600/20 border-2 border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all";
+                } else {
+                    btn.className = "sticker-btn w-9 h-9 bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-xl flex items-center justify-center text-lg transition-all";
+                }
+            });
+        }
+
+        // Photo Session Sequence
+        let currentCaptureStep = 0;
+        async function startPhotoSession() {
+            state.capturedShots = [];
+            currentCaptureStep = 0;
+            await captureNextShotInSequence();
+        }
+
+        async function captureNextShotInSequence() {
+            if (currentCaptureStep >= state.shotsRequired) {
+                openReviewModal();
+                return;
+            }
+
+            document.getElementById('capture-btn').disabled = true;
+            document.getElementById('capture-btn-text').innerText = `Shooting (${currentCaptureStep + 1}/${state.shotsRequired})...`;
+
+            const countdownDisplay = document.getElementById('countdown-display');
+            const countdownNumber = document.getElementById('countdown-number');
+            countdownDisplay.classList.remove('hidden');
+
+            let timeLeft = state.timerDuration;
+            countdownNumber.innerText = timeLeft;
+
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    countdownNumber.innerText = timeLeft;
+                } else {
+                    clearInterval(timerInterval);
+                    countdownDisplay.classList.add('hidden');
+                    takeActualSnapshot();
+                }
+            }, 1000);
+        }
+
+        function takeActualSnapshot() {
+            const flash = document.getElementById('flash-overlay');
+            flash.classList.add('camera-flash');
+            setTimeout(() => flash.classList.remove('camera-flash'), 800);
+
+            const canvas = snapshotCanvas;
+            const video = webcamElement;
+
+            if (state.isDemoMode) {
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ec4899';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 36px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(`DEMO SHOT #${currentCaptureStep + 1}`, canvas.width/2, canvas.height/2);
+                
+                state.capturedShots.push(canvas.toDataURL('image/png'));
+                currentCaptureStep++;
+                
+                if (currentCaptureStep < state.shotsRequired) {
+                    setTimeout(captureNextShotInSequence, 1000);
+                } else {
+                    document.getElementById('capture-btn').disabled = false;
+                    document.getElementById('capture-btn-text').innerText = `Take Photos (1/${state.shotsRequired})`;
+                    openReviewModal();
+                }
+            } else {
+                canvas.width = video.videoWidth || 1280;
+                canvas.height = video.videoHeight || 720;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.filter = getCanvasFilterString(state.selectedFilter);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                state.capturedShots.push(canvas.toDataURL('image/png'));
+                currentCaptureStep++;
+
+                if (currentCaptureStep < state.shotsRequired) {
+                    setTimeout(captureNextShotInSequence, 1000);
+                } else {
+                    document.getElementById('capture-btn').disabled = false;
+                    document.getElementById('capture-btn-text').innerText = `Take Photos (1/${state.shotsRequired})`;
+                    openReviewModal();
+                }
+            }
+        }
+
+        function getCanvasFilterString(filterClass) {
+            switch(filterClass) {
+                case 'filter-bw': return 'grayscale(100%) contrast(120%)';
+                case 'filter-sepia': return 'sepia(90%) contrast(110%) brightness(95%)';
+                case 'filter-vintage': return 'sepia(50%) hue-rotate(-30deg) contrast(110%) saturate(140%)';
+                case 'filter-cool': return 'hue-rotate(180deg) saturate(120%)';
+                case 'filter-warm': return 'sepia(40%) saturate(150%) hue-rotate(-10deg)';
+                case 'filter-cyberpunk': return 'contrast(150%) saturate(200%) hue-rotate(290deg)';
+                default: return 'none';
+            }
+        }
+
+        // Review Modal Logic
+        function openReviewModal() {
+            const grid = document.getElementById('review-shots-grid');
+            grid.innerHTML = '';
+
+            state.capturedShots.forEach((shotUrl, idx) => {
+                const div = document.createElement('div');
+                div.className = "relative group bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 aspect-[4/3] flex items-center justify-center";
+                div.innerHTML = `
+                    <img src="${shotUrl}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-2">
+                        <span class="text-xs font-bold text-white mb-2">Shot #${idx + 1}</span>
+                        <button onclick="retakeSingleShot(${idx})" class="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-semibold shadow-md">
+                            Retake Shot
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+
+            document.getElementById('review-modal').classList.remove('hidden');
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.add('hidden');
+        }
+
+        let retakeIndexTarget = null;
+        function retakeSingleShot(index) {
+            retakeIndexTarget = index;
+            closeReviewModal();
+            startSingleShotRetake();
+        }
+
+        async function startSingleShotRetake() {
+            const countdownDisplay = document.getElementById('countdown-display');
+            const countdownNumber = document.getElementById('countdown-number');
+            countdownDisplay.classList.remove('hidden');
+
+            let timeLeft = 3;
+            countdownNumber.innerText = timeLeft;
+
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    countdownNumber.innerText = timeLeft;
+                } else {
+                    clearInterval(timerInterval);
+                    countdownDisplay.classList.add('hidden');
+                    
+                    const canvas = snapshotCanvas;
+                    const video = webcamElement;
+                    if (state.isDemoMode) {
+                        canvas.width = 640;
+                        canvas.height = 480;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#ec4899';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 30px Outfit';
+                        ctx.fillText(`RETAKE SHOT #${retakeIndexTarget + 1}`, canvas.width/2, canvas.height/2);
+                        state.capturedShots[retakeIndexTarget] = canvas.toDataURL('image/png');
+                    } else {
+                        canvas.width = video.videoWidth || 1280;
+                        canvas.height = video.videoHeight || 720;
+                        const ctx = canvas.getContext('2d');
+                        ctx.filter = getCanvasFilterString(state.selectedFilter);
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        state.capturedShots[retakeIndexTarget] = canvas.toDataURL('image/png');
+                    }
+                    openReviewModal();
+                }
+            }, 1000);
+        }
+
+        function retakeAllShots() {
+            closeReviewModal();
+            startPhotoSession();
+        }
+
+        // Final Photostrip Composition & Generation
+        let finalGeneratedImageUrl = null;
+
+        function finalizeAndGeneratePhotostrip() {
+            closeReviewModal();
+
+            const compCanvas = document.createElement('canvas');
+            const ctx = compCanvas.getContext('2d');
+
+            const padding = 30;
+            const headerHeight = 90;
+            const footerHeight = 70;
+            const photoWidth = 600;
+            const photoHeight = 450;
+
+            if (state.layout === 'strip3') {
+                compCanvas.width = photoWidth + (padding * 2);
+                compCanvas.height = headerHeight + (photoHeight * 3) + (padding * 4) + footerHeight;
+            } else if (state.layout === 'grid2x2') {
+                compCanvas.width = (photoWidth * 2) + (padding * 3);
+                compCanvas.height = headerHeight + (photoHeight * 2) + (padding * 3) + footerHeight;
+            } else if (state.layout === 'polaroid') {
+                compCanvas.width = photoWidth + (padding * 2);
+                compCanvas.height = photoHeight + headerHeight + padding + 120;
+            } else {
+                compCanvas.width = photoWidth + (padding * 2);
+                compCanvas.height = photoHeight + headerHeight + padding + footerHeight;
+            }
+
+            ctx.fillStyle = state.frameColor;
+            ctx.fillRect(0, 0, compCanvas.width, compCanvas.height);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `800 32px Outfit, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(state.customTitle.toUpperCase(), compCanvas.width / 2, padding + 40);
+
+            ctx.font = `14px Inter, sans-serif`;
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillText(new Date().toLocaleDateString() + ' • Snapsify Studio', compCanvas.width / 2, padding + 68);
+
+            let loadedImagesCount = 0;
+            let images = state.capturedShots.map(src => {
+                let img = new Image();
+                img.src = src;
+                return img;
+            });
+
+            function drawPhotosToCanvas() {
+                if (state.layout === 'strip3') {
+                    images.forEach((img, idx) => {
+                        let yPos = headerHeight + padding + (idx * (photoHeight + padding));
+                        ctx.drawImage(img, padding, yPos, photoWidth, photoHeight);
+                    });
+                } else if (state.layout === 'grid2x2') {
+                    images.forEach((img, idx) => {
+                        let row = Math.floor(idx / 2);
+                        let col = idx % 2;
+                        let xPos = padding + (col * (photoWidth + padding));
+                        let yPos = headerHeight + padding + (row * (photoHeight + padding));
+                        ctx.drawImage(img, xPos, yPos, photoWidth, photoHeight);
+                    });
+                } else if (state.layout === 'polaroid') {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(padding - 10, headerHeight + padding - 10, photoWidth + 20, photoHeight + 80);
+                    ctx.drawImage(images[0], padding, headerHeight + padding, photoWidth, photoHeight);
+                    
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = `bold 28px Permanent Marker, cursive`;
+                    ctx.fillText(state.customTitle, compCanvas.width / 2, headerHeight + padding + photoHeight + 50);
+                } else {
+                    ctx.drawImage(images[0], padding, headerHeight + padding, photoWidth, photoHeight);
+                }
+
+                if (state.stickers.length > 0) {
+                    ctx.font = '40px sans-serif';
+                    state.stickers.forEach((sticker, i) => {
+                        let x = padding + 30 + (i * 50);
+                        let y = compCanvas.height - 40;
+                        ctx.fillText(sticker, x, y);
+                    });
+                }
+
+                finalGeneratedImageUrl = compCanvas.toDataURL('image/png');
+                saveToGallery(finalGeneratedImageUrl);
+                openShareModal(finalGeneratedImageUrl);
+            }
+
+            let checkLoaded = () => {
+                loadedImagesCount++;
+                if (loadedImagesCount >= images.length) {
+                    drawPhotosToCanvas();
+                }
+            };
+
+            images.forEach(img => {
+                if (img.complete) checkLoaded();
+                else img.onload = checkLoaded;
+            });
+        }
+
+        // Share & Preview Modal
+        function openShareModal(dataUrl) {
+            const previewWrap = document.getElementById('modal-photostrip-preview-wrap');
+            previewWrap.innerHTML = `<img src="${dataUrl}" class="rounded-xl shadow-lg max-h-[280px] object-contain">`;
+
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: dataUrl,
+                width: 128,
+                height: 128,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('share-modal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        function downloadCurrentPhotostrip() {
+            if (!finalGeneratedImageUrl) return;
+            const a = document.createElement('a');
+            a.href = finalGeneratedImageUrl;
+            a.download = `snapsify-photobooth-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Gallery & Local Storage Management
+        function saveToGallery(dataUrl) {
+            const newItem = {
+                id: 'snap_' + Date.now(),
+                url: dataUrl,
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                layout: state.layout
+            };
+            state.gallery.unshift(newItem);
+            localStorage.setItem('snapsify_gallery', JSON.stringify(state.gallery));
+            updateGalleryBadge();
+        }
+
+        function loadGalleryFromStorage() {
+            const stored = localStorage.getItem('snapsify_gallery');
+            if (stored) {
+                try {
+                    state.gallery = JSON.parse(stored);
+                } catch (e) {
+                    state.gallery = [];
+                }
+            }
+            updateGalleryBadge();
+        }
+
+        function updateGalleryBadge() {
+            const badge = document.getElementById('gallery-badge');
+            if (state.gallery.length > 0) {
+                badge.innerText = state.gallery.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('gallery-grid');
+            const emptyState = document.getElementById('gallery-empty');
+            grid.innerHTML = '';
+
+            if (state.gallery.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            state.gallery.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col group";
+                card.innerHTML = `
+                    <div class="relative bg-slate-950 rounded-2xl overflow-hidden aspect-[3/4] flex items-center justify-center mb-3 border border-slate-800/80">
+                        <img src="${item.url}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-all duration-300">
+                    </div>
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <span class="text-xs text-slate-400 font-medium">${item.date}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-pink-500/10 text-pink-400 border border-pink-500/20 uppercase">${item.layout}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-auto">
+                        <button onclick="downloadGalleryItem('${item.id}')" class="py-2 px-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 shadow-md shadow-pink-600/20">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Save</span>
+                        </button>
+                        <button onclick="deleteGalleryItem('${item.id}')" class="py-2 px-3 bg-slate-800 hover:bg-rose-950/50 text-slate-300 hover:text-rose-400 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>Delete</span>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function downloadGalleryItem(id) {
+            const item = state.gallery.find(g => g.id === id);
+            if (!item) return;
+            const a = document.createElement('a');
+            a.href = item.url;
+            a.download = `snapsify-${item.id}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function deleteGalleryItem(id) {
+            state.gallery = state.gallery.filter(g => g.id !== id);
+            localStorage.setItem('snapsify_gallery', JSON.stringify(state.gallery));
+            renderGallery();
+            updateGalleryBadge();
+        }
+
+        function clearGallery() {
+            if (confirm("Are you sure you want to clear all photos from your gallery?")) {
+                state.gallery = [];
+                localStorage.removeItem('snapsify_gallery');
+                renderGallery();
+                updateGalleryBadge();
+            }
+        }
+    </script>
+</body>
+</html>
